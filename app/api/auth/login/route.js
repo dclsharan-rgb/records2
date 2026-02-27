@@ -49,6 +49,7 @@ export async function POST(request) {
     setAuthCookie(response, token);
     return response;
   } catch (error) {
+    console.error("Login route error:", error);
     const errorMessage =
       process.env.NODE_ENV === "development"
         ? `Login failed: ${error?.message || "Unknown server error"}`
