@@ -5,6 +5,10 @@ import { ensureBootstrapData } from "@/lib/bootstrap";
 import User from "@/models/User";
 import { dbConnect } from "@/lib/mongodb";
 
+function escapeRegex(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 export async function POST(request) {
   try {
     const body = await request.json().catch(() => ({}));
@@ -18,7 +22,8 @@ export async function POST(request) {
     await ensureBootstrapData();
     await dbConnect();
 
-    const user = await User.findOne({ username: new RegExp(`^${username}$`, "i") });
+    const safeUsername = escapeRegex(username);
+    const user = await User.findOne({ username: new RegExp(`^${safeUsername}$`, "i") });
     if (!user) {
       return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
     }
@@ -43,7 +48,11 @@ export async function POST(request) {
     });
     setAuthCookie(response, token);
     return response;
-  } catch {
-    return NextResponse.json({ error: "Login failed due to server error" }, { status: 500 });
+  } catch (error) {
+    const errorMessage =
+      process.env.NODE_ENV === "development"
+        ? `Login failed: ${error?.message || "Unknown server error"}`
+        : "Login failed due to server error";
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
