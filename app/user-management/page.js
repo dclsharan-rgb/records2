@@ -12,6 +12,7 @@ export default function UserManagementPage() {
   const [users, setUsers] = useState([]);
   const [newUser, setNewUser] = useState({ username: "", password: "Welcome@123", role: "user" });
   const [message, setMessage] = useState("");
+  const [busyUserId, setBusyUserId] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -53,6 +54,37 @@ export default function UserManagementPage() {
     setMessage("User created.");
   }
 
+  async function resetUserPassword(targetUser) {
+    const suggested = "Welcome@123";
+    const newPassword = window.prompt(`Set temporary password for ${targetUser.username}:`, suggested);
+    if (!newPassword) return;
+    setBusyUserId(targetUser._id);
+    setMessage("");
+    const res = await fetch(`/api/admin/users/${targetUser._id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "reset_password", newPassword })
+    });
+    const json = await res.json();
+    setBusyUserId("");
+    if (!res.ok) return setMessage(json.error || "Failed to reset password");
+    setUsers((prev) => prev.map((u) => (u._id === targetUser._id ? json.user : u)));
+    setMessage(`Password reset for ${targetUser.username}. User must change it on next login.`);
+  }
+
+  async function deleteUser(targetUser) {
+    const ok = window.confirm(`Delete user "${targetUser.username}" and all their records?`);
+    if (!ok) return;
+    setBusyUserId(targetUser._id);
+    setMessage("");
+    const res = await fetch(`/api/admin/users/${targetUser._id}`, { method: "DELETE" });
+    const json = await res.json();
+    setBusyUserId("");
+    if (!res.ok) return setMessage(json.error || "Failed to delete user");
+    setUsers((prev) => prev.filter((u) => u._id !== targetUser._id));
+    setMessage(`Deleted user ${targetUser.username}.`);
+  }
+
   if (loading || !user) return <LoadingState label="Loading user management..." />;
 
   return (
@@ -79,6 +111,24 @@ export default function UserManagementPage() {
               <p className="text-base font-semibold text-orange-900">{u.username}</p>
               <p className="text-sm text-orange-800">Role: {u.role}</p>
               <p className="text-sm text-orange-800">Reset Required: {u.forcePasswordReset ? "Yes" : "No"}</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  className="rounded-md border border-orange-300 bg-white px-3 py-1 text-xs text-orange-900 disabled:opacity-60"
+                  disabled={busyUserId === u._id}
+                  onClick={() => resetUserPassword(u)}
+                  type="button"
+                >
+                  {busyUserId === u._id ? "Please wait..." : "Reset Password"}
+                </button>
+                <button
+                  className="rounded-md border border-red-300 bg-white px-3 py-1 text-xs text-red-700 disabled:opacity-60"
+                  disabled={busyUserId === u._id || u._id === user.id}
+                  onClick={() => deleteUser(u)}
+                  type="button"
+                >
+                  Delete User
+                </button>
+              </div>
             </article>
           ))}
         </div>
