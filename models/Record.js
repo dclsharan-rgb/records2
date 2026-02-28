@@ -11,7 +11,8 @@ const RecordSchema = new Schema(
     },
     userId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
     username: { type: String, required: true },
-    values: { type: Schema.Types.Mixed, default: {} }
+    values: { type: Schema.Types.Mixed, default: {} },
+    adminRemark: { type: String, default: "" }
   },
   { timestamps: true }
 );

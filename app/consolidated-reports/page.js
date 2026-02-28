@@ -17,6 +17,7 @@ export default function ConsolidatedReportsPage() {
   const [filter, setFilter] = useState({ userId: "", from: "", to: "" });
   const [searchText, setSearchText] = useState("");
   const [sortOrder, setSortOrder] = useState("desc");
+  const [savingRemarkIds, setSavingRemarkIds] = useState([]);
 
   useEffect(() => {
     let active = true;
@@ -97,6 +98,7 @@ export default function ConsolidatedReportsPage() {
     const rows = rowsSource.map((record) => {
       const row = { RecordId: record.recordId || record.id, Username: record.username, CreatedAt: record.createdAt };
       for (const field of fields) row[field.label || field.name] = record.values?.[field.name] ?? "";
+      row.AdminRemark = record.adminRemark || "";
       return row;
     });
     const wb = XLSX.utils.book_new();
@@ -112,6 +114,41 @@ export default function ConsolidatedReportsPage() {
     URL.revokeObjectURL(url);
   }
 
+  async function deleteRecord(id) {
+    const ok = window.confirm("Delete this record?");
+    if (!ok) return;
+    const res = await fetch(`/api/records/${id}`, { method: "DELETE" });
+    if (!res.ok) return;
+    setRecords((prev) => prev.filter((r) => r.id !== id));
+    setSelectedIds((prev) => prev.filter((x) => x !== id));
+  }
+
+  async function deleteAllRecords() {
+    const ok = window.confirm("Delete ALL records? This cannot be undone.");
+    if (!ok) return;
+    const res = await fetch("/api/records", { method: "DELETE" });
+    if (!res.ok) return;
+    setRecords([]);
+    setSelectedIds([]);
+  }
+
+  async function saveRemark(id) {
+    const target = records.find((r) => r.id === id);
+    if (!target) return;
+    setSavingRemarkIds((prev) => [...prev, id]);
+    const res = await fetch(`/api/records/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ adminRemark: target.adminRemark || "" })
+    });
+    setSavingRemarkIds((prev) => prev.filter((x) => x !== id));
+    if (!res.ok) return;
+  }
+
+  function updateRemark(id, adminRemark) {
+    setRecords((prev) => prev.map((r) => (r.id === id ? { ...r, adminRemark } : r)));
+  }
+
   if (loading || !user) return <LoadingState label="Loading consolidated reports..." />;
 
   return (
@@ -121,6 +158,9 @@ export default function ConsolidatedReportsPage() {
           <h2 className="mr-auto text-lg font-semibold text-orange-900">Consolidated Records</h2>
           <button className="btn-primary rounded-md px-3 py-2 text-sm text-white" onClick={downloadCurrent} type="button">
             Download {selectedIds.length > 0 ? "Selected" : "Filtered"}
+          </button>
+          <button className="rounded-md border border-red-300 px-3 py-2 text-sm text-red-700" onClick={deleteAllRecords} type="button">
+            Delete All Records
           </button>
         </div>
 
@@ -156,6 +196,8 @@ export default function ConsolidatedReportsPage() {
                 <th className="px-3 py-3 text-left">Created</th>
                 <th className="px-3 py-3 text-left">User</th>
                 {fields.map((f) => <th className="px-3 py-3 text-left" key={f.name}>{f.label}</th>)}
+                <th className="px-3 py-3 text-left">Admin Remark</th>
+                <th className="px-3 py-3 text-left">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -166,6 +208,23 @@ export default function ConsolidatedReportsPage() {
                   <td className="px-3 py-2">{new Date(record.createdAt).toLocaleString()}</td>
                   <td className="px-3 py-2">{record.username}</td>
                   {fields.map((f) => <td className="px-3 py-2" key={`${record.id}_${f.name}`}>{String(record.values?.[f.name] ?? "")}</td>)}
+                  <td className="px-3 py-2">
+                    <textarea
+                      className="input-orange min-h-16 w-56 rounded-md bg-white px-2 py-1 text-xs"
+                      value={record.adminRemark || ""}
+                      onChange={(e) => updateRemark(record.id, e.target.value)}
+                    />
+                  </td>
+                  <td className="px-3 py-2">
+                    <div className="flex gap-2">
+                      <button className="rounded-md border border-orange-300 px-2 py-1 text-xs text-orange-900" onClick={() => saveRemark(record.id)} type="button">
+                        {savingRemarkIds.includes(record.id) ? "Saving..." : "Save Remark"}
+                      </button>
+                      <button className="rounded-md border border-red-300 px-2 py-1 text-xs text-red-700" onClick={() => deleteRecord(record.id)} type="button">
+                        Delete
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -188,6 +247,20 @@ export default function ConsolidatedReportsPage() {
                     <span className="text-orange-800">{String(record.values?.[f.name] ?? "")}</span>
                   </p>
                 ))}
+              </div>
+              <textarea
+                className="input-orange mt-3 min-h-20 w-full rounded-md bg-orange-50 px-3 py-2 text-sm"
+                placeholder="Admin remark"
+                value={record.adminRemark || ""}
+                onChange={(e) => updateRemark(record.id, e.target.value)}
+              />
+              <div className="mt-2 flex gap-2">
+                <button className="rounded-md border border-orange-300 px-3 py-1 text-xs text-orange-900" onClick={() => saveRemark(record.id)} type="button">
+                  {savingRemarkIds.includes(record.id) ? "Saving..." : "Save Remark"}
+                </button>
+                <button className="rounded-md border border-red-300 px-3 py-1 text-xs text-red-700" onClick={() => deleteRecord(record.id)} type="button">
+                  Delete
+                </button>
               </div>
             </article>
           ))}

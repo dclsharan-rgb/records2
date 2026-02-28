@@ -4,6 +4,7 @@ import { dbConnect } from "@/lib/mongodb";
 import Record from "@/models/Record";
 import SchemaConfig from "@/models/SchemaConfig";
 import { normalizeRecordInput } from "@/lib/records";
+import mongoose from "mongoose";
 
 export const GET = withAuth(async (request, user) => {
   await dbConnect();
@@ -19,7 +20,8 @@ export const GET = withAuth(async (request, user) => {
       userId: String(record.userId),
       username: record.username,
       createdAt: record.createdAt,
-      values: record.values || {}
+      values: record.values || {},
+      ...(user.role === "admin" ? { adminRemark: record.adminRemark || "" } : {})
     }))
   );
 });
@@ -53,6 +55,26 @@ export const POST = withAuth(async (request, user) => {
     userId: String(created.userId),
     username: created.username,
     createdAt: created.createdAt,
-    values: created.values
+    values: created.values,
+    ...(user.role === "admin" ? { adminRemark: created.adminRemark || "" } : {})
   });
+});
+
+export const DELETE = withAuth(async (request, user) => {
+  if (user.role !== "admin") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  await dbConnect();
+  const body = await request.json().catch(() => ({}));
+  const ids = Array.isArray(body.ids) ? body.ids : null;
+
+  if (ids && ids.length > 0) {
+    const objectIds = ids.filter((id) => mongoose.Types.ObjectId.isValid(id));
+    const result = await Record.deleteMany({ _id: { $in: objectIds } });
+    return NextResponse.json({ ok: true, deletedCount: result.deletedCount || 0 });
+  }
+
+  const result = await Record.deleteMany({});
+  return NextResponse.json({ ok: true, deletedCount: result.deletedCount || 0 });
 });

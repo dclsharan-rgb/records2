@@ -97,6 +97,9 @@ export default function MyRecordsPage() {
     const rows = rowsSource.map((record) => {
       const row = { RecordId: record.recordId || record.id, Username: record.username, CreatedAt: record.createdAt };
       for (const field of fields) row[field.label || field.name] = record.values?.[field.name] ?? "";
+      if (user.role === "admin") {
+        row.AdminRemark = record.adminRemark || "";
+      }
       return row;
     });
     const wb = XLSX.utils.book_new();
@@ -110,6 +113,15 @@ export default function MyRecordsPage() {
     a.download = `${user.username}-records.xlsx`;
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  async function deleteRecord(id) {
+    const ok = window.confirm("Delete this record?");
+    if (!ok) return;
+    const res = await fetch(`/api/records/${id}`, { method: "DELETE" });
+    if (!res.ok) return;
+    setRecords((prev) => prev.filter((r) => r.id !== id));
+    setSelectedIds((prev) => prev.filter((x) => x !== id));
   }
 
   if (loading || !user) return <LoadingState label="Loading my records..." />;
@@ -155,6 +167,8 @@ export default function MyRecordsPage() {
                 <th className="px-3 py-3 text-left">Record ID</th>
                 <th className="px-3 py-3 text-left">Created</th>
                 {fields.map((f) => <th key={f.name} className="px-3 py-3 text-left">{f.label}</th>)}
+                {user.role === "admin" && <th className="px-3 py-3 text-left">Admin Remark</th>}
+                <th className="px-3 py-3 text-left">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -164,6 +178,12 @@ export default function MyRecordsPage() {
                   <td className="px-3 py-2 font-mono text-xs">{record.recordId || record.id}</td>
                   <td className="px-3 py-2">{new Date(record.createdAt).toLocaleString()}</td>
                   {fields.map((f) => <td className="px-3 py-2" key={`${record.id}_${f.name}`}>{String(record.values?.[f.name] ?? "")}</td>)}
+                  {user.role === "admin" && <td className="px-3 py-2">{record.adminRemark || ""}</td>}
+                  <td className="px-3 py-2">
+                    <button className="rounded-md border border-red-300 px-2 py-1 text-xs text-red-700" onClick={() => deleteRecord(record.id)} type="button">
+                      Delete
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -185,7 +205,16 @@ export default function MyRecordsPage() {
                     <span className="text-orange-800">{String(record.values?.[f.name] ?? "")}</span>
                   </p>
                 ))}
+                {user.role === "admin" && (
+                  <p>
+                    <span className="font-medium text-orange-900">Admin Remark: </span>
+                    <span className="text-orange-800">{record.adminRemark || "-"}</span>
+                  </p>
+                )}
               </div>
+              <button className="mt-3 rounded-md border border-red-300 px-3 py-1 text-xs text-red-700" onClick={() => deleteRecord(record.id)} type="button">
+                Delete
+              </button>
             </article>
           ))}
           {filteredRecords.length === 0 && <p className="text-sm text-orange-700">No records match current filters.</p>}

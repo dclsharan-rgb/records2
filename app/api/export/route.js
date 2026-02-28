@@ -26,7 +26,8 @@ function applyRecordFilters(records, searchParams) {
       const haystack = [
         record.recordId || record.id || String(record._id || ""),
         record.username || "",
-        ...Object.values(record.values || {}).map((v) => String(v ?? ""))
+        ...Object.values(record.values || {}).map((v) => String(v ?? "")),
+        record.adminRemark || ""
       ]
         .join(" ")
         .toLowerCase();
@@ -66,7 +67,10 @@ export const GET = withAuth(async (request, user) => {
   const mineRecords = await Record.find({ userId: user.id }).sort({ createdAt: -1 }).lean();
 
   if (mode === "mine") {
-    return workbookResponse(flattenRecordsForExcel(mineRecords, fields), `${user.username}-records.xlsx`);
+    return workbookResponse(
+      flattenRecordsForExcel(mineRecords, fields, { includeAdminRemark: user.role === "admin" }),
+      `${user.username}-records.xlsx`
+    );
   }
 
   if (user.role !== "admin") {
@@ -76,7 +80,10 @@ export const GET = withAuth(async (request, user) => {
   if (mode === "consolidated") {
     const allRecords = await Record.find({}).sort({ createdAt: -1 }).lean();
     const filtered = applyRecordFilters(allRecords, url.searchParams);
-    return workbookResponse(flattenRecordsForExcel(filtered, fields), "consolidated-records.xlsx");
+    return workbookResponse(
+      flattenRecordsForExcel(filtered, fields, { includeAdminRemark: true }),
+      "consolidated-records.xlsx"
+    );
   }
 
   if (mode === "user") {
@@ -85,7 +92,10 @@ export const GET = withAuth(async (request, user) => {
       return NextResponse.json({ error: "userId is required for mode=user" }, { status: 400 });
     }
     const userRecords = await Record.find({ userId }).sort({ createdAt: -1 }).lean();
-    return workbookResponse(flattenRecordsForExcel(userRecords, fields), `user-${userId}-records.xlsx`);
+    return workbookResponse(
+      flattenRecordsForExcel(userRecords, fields, { includeAdminRemark: true }),
+      `user-${userId}-records.xlsx`
+    );
   }
 
   return NextResponse.json({ error: "Invalid mode" }, { status: 400 });
