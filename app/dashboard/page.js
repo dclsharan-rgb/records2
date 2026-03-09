@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import AppShell from "@/components/AppShell";
 import LoadingState from "@/components/LoadingState";
@@ -28,32 +28,41 @@ function getCurrentMonthYear() {
 export default function DashboardPage() {
   const router = useRouter();
   const current = getCurrentMonthYear();
+
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [tableLoading, setTableLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+
   const [month, setMonth] = useState(current.month);
   const [year, setYear] = useState(current.year);
   const [rows, setRows] = useState([]);
 
   useEffect(() => {
     let active = true;
+
     (async () => {
       const res = await fetch("/api/auth/me");
+
       if (!res.ok) {
         router.replace("/");
         return;
       }
+
       const me = await res.json();
+
       if (!active) return;
+
       if (me.forcePasswordReset) {
         router.replace("/reset-password");
         return;
       }
+
       setUser(me);
       setLoading(false);
     })();
+
     return () => {
       active = false;
     };
@@ -61,16 +70,22 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (!user) return;
+
     let active = true;
+
     setTableLoading(true);
     setMessage("");
+
     (async () => {
       const res = await fetch(`/api/dashboard-status?month=${month}&year=${year}`);
       const json = await res.json();
+
       if (!active) return;
+
       setRows(Array.isArray(json.rows) ? json.rows : []);
       setTableLoading(false);
     })();
+
     return () => {
       active = false;
     };
@@ -79,7 +94,9 @@ export default function DashboardPage() {
   function updateRow(index, key, value) {
     setRows((prev) =>
       prev.map((row, rowIndex) =>
-        rowIndex === index ? { ...row, [key]: value === "" ? "" : Number(value) } : row
+        rowIndex === index
+          ? { ...row, [key]: value === "" ? "" : Number(value) }
+          : row
       )
     );
   }
@@ -87,20 +104,38 @@ export default function DashboardPage() {
   async function saveStatus() {
     setSaving(true);
     setMessage("");
+
     const res = await fetch("/api/dashboard-status", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ month, year, rows })
     });
+
     const json = await res.json();
+
     setSaving(false);
+
     if (!res.ok) {
       setMessage(json.error || "Failed to save dashboard status");
       return;
     }
+
     setRows(Array.isArray(json.rows) ? json.rows : []);
     setMessage("Dashboard status saved.");
   }
+
+  // TOTAL CALCULATION
+  const totals = useMemo(() => {
+    return rows.reduce(
+      (acc, row) => {
+        acc.schedule += Number(row.schedule || 0);
+        acc.jd += Number(row.jd || 0);
+        acc.closures += Number(row.closures || 0);
+        return acc;
+      },
+      { schedule: 0, jd: 0, closures: 0 }
+    );
+  }, [rows]);
 
   if (loading || !user) return <LoadingState label="Loading dashboard..." />;
 
@@ -108,19 +143,35 @@ export default function DashboardPage() {
     <AppShell user={user} title="Dashboard">
       <section className="card rounded-xl p-4">
         <h3 className="text-lg font-semibold text-orange-900">Quick Access</h3>
+
         <div className="mt-4 grid gap-3 md:grid-cols-2">
-          <a className="rounded-md border border-orange-300 bg-orange-50 px-4 py-3 text-orange-900" href="/my-records">
+          <a
+            className="rounded-md border border-orange-300 bg-orange-50 px-4 py-3 text-orange-900"
+            href="/my-records"
+          >
             My Records
           </a>
+
           {user.role === "admin" && (
             <>
-              <a className="rounded-md border border-orange-300 bg-orange-50 px-4 py-3 text-orange-900" href="/user-management">
+              <a
+                className="rounded-md border border-orange-300 bg-orange-50 px-4 py-3 text-orange-900"
+                href="/user-management"
+              >
                 User Management
               </a>
-              <a className="rounded-md border border-orange-300 bg-orange-50 px-4 py-3 text-orange-900" href="/schema-management">
+
+              <a
+                className="rounded-md border border-orange-300 bg-orange-50 px-4 py-3 text-orange-900"
+                href="/schema-management"
+              >
                 Schema Management
               </a>
-              <a className="rounded-md border border-orange-300 bg-orange-50 px-4 py-3 text-orange-900" href="/consolidated-reports">
+
+              <a
+                className="rounded-md border border-orange-300 bg-orange-50 px-4 py-3 text-orange-900"
+                href="/consolidated-reports"
+              >
                 Consolidated Reports
               </a>
             </>
@@ -130,7 +181,10 @@ export default function DashboardPage() {
 
       <section className="card mt-6 rounded-xl p-4">
         <div className="mb-4 flex flex-wrap items-center gap-2">
-          <h3 className="mr-auto text-lg font-semibold text-orange-900">Monthly Team Status</h3>
+          <h3 className="mr-auto text-lg font-semibold text-orange-900">
+            Monthly Team Status
+          </h3>
+
           <select
             className="input-orange rounded-md bg-orange-50 px-3 py-2 text-sm"
             value={month}
@@ -142,17 +196,21 @@ export default function DashboardPage() {
               </option>
             ))}
           </select>
+
           <select
             className="input-orange rounded-md bg-orange-50 px-3 py-2 text-sm"
             value={year}
             onChange={(e) => setYear(Number(e.target.value))}
           >
-            {[current.year - 1, current.year, current.year + 1, current.year + 2].map((value) => (
-              <option key={value} value={value}>
-                {value}
-              </option>
-            ))}
+            {[current.year - 1, current.year, current.year + 1, current.year + 2].map(
+              (value) => (
+                <option key={value} value={value}>
+                  {value}
+                </option>
+              )
+            )}
           </select>
+
           {user.role === "admin" && (
             <button
               className="btn-primary rounded-md px-3 py-2 text-sm text-white disabled:opacity-70"
@@ -181,10 +239,17 @@ export default function DashboardPage() {
                     <th className="px-3 py-3 text-left">Closures</th>
                   </tr>
                 </thead>
+
                 <tbody>
                   {rows.map((row, index) => (
-                    <tr className={index % 2 === 0 ? "bg-white" : "bg-orange-50"} key={row.userId}>
-                      <td className="px-3 py-2 font-medium text-orange-900">{row.username}</td>
+                    <tr
+                      className={index % 2 === 0 ? "bg-white" : "bg-orange-50"}
+                      key={row.userId}
+                    >
+                      <td className="px-3 py-2 font-medium text-orange-900">
+                        {row.username}
+                      </td>
+
                       {["schedule", "jd", "closures"].map((key) => (
                         <td className="px-3 py-2" key={key}>
                           {user.role === "admin" ? (
@@ -193,35 +258,57 @@ export default function DashboardPage() {
                               min="0"
                               type="number"
                               value={row[key] ?? 0}
-                              onChange={(e) => updateRow(index, key, e.target.value)}
+                              onChange={(e) =>
+                                updateRow(index, key, e.target.value)
+                              }
                             />
                           ) : (
-                            <span className="text-orange-800">{row[key] ?? 0}</span>
+                            <span className="text-orange-800">
+                              {row[key] ?? 0}
+                            </span>
                           )}
                         </td>
                       ))}
                     </tr>
                   ))}
+
+                  {/* TOTAL ROW */}
+                  <tr className="bg-orange-200 font-bold text-orange-900">
+                    <td className="px-3 py-2">Total</td>
+                    <td className="px-3 py-2">{totals.schedule}</td>
+                    <td className="px-3 py-2">{totals.jd}</td>
+                    <td className="px-3 py-2">{totals.closures}</td>
+                  </tr>
                 </tbody>
               </table>
             </div>
 
+            {/* MOBILE VIEW */}
             <div className="space-y-3 md:hidden">
-              {rows.map((row, index) => (
-                <article className="rounded-lg border border-orange-200 bg-white p-3" key={row.userId}>
-                  <p className="mb-3 text-base font-semibold text-orange-900">{row.username}</p>
+              {rows.map((row) => (
+                <article
+                  className="rounded-lg border border-orange-200 bg-white p-3"
+                  key={row.userId}
+                >
+                  <p className="mb-3 text-base font-semibold text-orange-900">
+                    {row.username}
+                  </p>
+
                   {["schedule", "jd", "closures"].map((key) => (
                     <div className="mb-2" key={key}>
                       <label className="mb-1 block text-sm font-medium capitalize text-orange-800">
                         {key}
                       </label>
+
                       {user.role === "admin" ? (
                         <input
                           className="input-orange w-full rounded-md bg-orange-50 px-3 py-2"
                           min="0"
                           type="number"
                           value={row[key] ?? 0}
-                          onChange={(e) => updateRow(index, key, e.target.value)}
+                          onChange={(e) =>
+                            updateRow(rows.indexOf(row), key, e.target.value)
+                          }
                         />
                       ) : (
                         <p className="rounded-md border border-orange-200 bg-orange-50 px-3 py-2 text-orange-800">
@@ -232,6 +319,18 @@ export default function DashboardPage() {
                   ))}
                 </article>
               ))}
+
+              {/* MOBILE TOTAL */}
+              <article className="rounded-lg border border-orange-300 bg-orange-100 p-3 font-semibold">
+                <p className="mb-2 text-orange-900">Total</p>
+                <p className="text-sm text-orange-800">
+                  Schedule: {totals.schedule}
+                </p>
+                <p className="text-sm text-orange-800">JD: {totals.jd}</p>
+                <p className="text-sm text-orange-800">
+                  Closures: {totals.closures}
+                </p>
+              </article>
             </div>
           </>
         )}
