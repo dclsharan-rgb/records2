@@ -234,9 +234,9 @@ export default function DashboardPage() {
                 <thead className="bg-orange-700 text-orange-50">
                   <tr>
                     <th className="px-3 py-3 text-left">People</th>
-                    <th className="px-3 py-3 text-left">Schedule</th>
-                    <th className="px-3 py-3 text-left">JD</th>
-                    <th className="px-3 py-3 text-left">Closures</th>
+                    <th className="px-3 py-3 text-left">Total JD Scheduled</th>
+                    <th className="px-3 py-3 text-left">Total JD shared</th>
+                    <th className="px-3 py-3 text-left">Total Closures</th>
                   </tr>
                 </thead>
 
@@ -294,7 +294,7 @@ export default function DashboardPage() {
                     {row.username}
                   </p>
 
-                  {["schedule", "jd", "closures"].map((key) => (
+                  {["total jd scheduled", "total jd shared", "total closures"].map((key) => (
                     <div className="mb-2" key={key}>
                       <label className="mb-1 block text-sm font-medium capitalize text-orange-800">
                         {key}
