@@ -234,8 +234,8 @@ export default function DashboardPage() {
                 <thead className="bg-orange-700 text-orange-50">
                   <tr>
                     <th className="px-3 py-3 text-left">People</th>
-                    <th className="px-3 py-3 text-left">Total JD Scheduled</th>
                     <th className="px-3 py-3 text-left">Total JD shared</th>
+                    <th className="px-3 py-3 text-left">Total JD Scheduled</th>
                     <th className="px-3 py-3 text-left">Total Closures</th>
                   </tr>
                 </thead>
@@ -250,7 +250,7 @@ export default function DashboardPage() {
                         {row.username}
                       </td>
 
-                      {["schedule", "jd", "closures"].map((key) => (
+                      {["total jd shared", "total jd scheduled",  "total closures"].map((key) => (
                         <td className="px-3 py-2" key={key}>
                           {user.role === "admin" ? (
                             <input
@@ -275,8 +275,8 @@ export default function DashboardPage() {
                   {/* TOTAL ROW */}
                   <tr className="bg-orange-200 font-bold text-orange-900">
                     <td className="px-3 py-2">Total</td>
-                    <td className="px-3 py-2">{totals.schedule}</td>
                     <td className="px-3 py-2">{totals.jd}</td>
+                    <td className="px-3 py-2">{totals.schedule}</td>
                     <td className="px-3 py-2">{totals.closures}</td>
                   </tr>
                 </tbody>
@@ -294,7 +294,7 @@ export default function DashboardPage() {
                     {row.username}
                   </p>
 
-                  {["total jd scheduled", "total jd shared", "total closures"].map((key) => (
+                  {["total jd shared", "total jd scheduled",  "total closures"].map((key) => (
                     <div className="mb-2" key={key}>
                       <label className="mb-1 block text-sm font-medium capitalize text-orange-800">
                         {key}
