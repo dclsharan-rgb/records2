@@ -6,18 +6,8 @@ import AppShell from "@/components/AppShell";
 import LoadingState from "@/components/LoadingState";
 
 const MONTHS = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December"
+  "January","February","March","April","May","June",
+  "July","August","September","October","November","December"
 ];
 
 function getCurrentMonthYear() {
@@ -63,9 +53,7 @@ export default function DashboardPage() {
       setLoading(false);
     })();
 
-    return () => {
-      active = false;
-    };
+    return () => { active = false };
   }, [router]);
 
   useEffect(() => {
@@ -86,9 +74,7 @@ export default function DashboardPage() {
       setTableLoading(false);
     })();
 
-    return () => {
-      active = false;
-    };
+    return () => { active = false };
   }, [user, month, year]);
 
   function updateRow(index, key, value) {
@@ -128,12 +114,12 @@ export default function DashboardPage() {
   const totals = useMemo(() => {
     return rows.reduce(
       (acc, row) => {
-        acc.schedule += Number(row.schedule || 0);
         acc.jd += Number(row.jd || 0);
+        acc.schedule += Number(row.schedule || 0);
         acc.closures += Number(row.closures || 0);
         return acc;
       },
-      { schedule: 0, jd: 0, closures: 0 }
+      { jd: 0, schedule: 0, closures: 0 }
     );
   }, [rows]);
 
@@ -141,46 +127,11 @@ export default function DashboardPage() {
 
   return (
     <AppShell user={user} title="Dashboard">
-      <section className="card rounded-xl p-4">
-        <h3 className="text-lg font-semibold text-orange-900">Quick Access</h3>
-
-        <div className="mt-4 grid gap-3 md:grid-cols-2">
-          <a
-            className="rounded-md border border-orange-300 bg-orange-50 px-4 py-3 text-orange-900"
-            href="/my-records"
-          >
-            My Records
-          </a>
-
-          {user.role === "admin" && (
-            <>
-              <a
-                className="rounded-md border border-orange-300 bg-orange-50 px-4 py-3 text-orange-900"
-                href="/user-management"
-              >
-                User Management
-              </a>
-
-              <a
-                className="rounded-md border border-orange-300 bg-orange-50 px-4 py-3 text-orange-900"
-                href="/schema-management"
-              >
-                Schema Management
-              </a>
-
-              <a
-                className="rounded-md border border-orange-300 bg-orange-50 px-4 py-3 text-orange-900"
-                href="/consolidated-reports"
-              >
-                Consolidated Reports
-              </a>
-            </>
-          )}
-        </div>
-      </section>
 
       <section className="card mt-6 rounded-xl p-4">
+
         <div className="mb-4 flex flex-wrap items-center gap-2">
+
           <h3 className="mr-auto text-lg font-semibold text-orange-900">
             Monthly Team Status
           </h3>
@@ -228,113 +179,69 @@ export default function DashboardPage() {
         {tableLoading ? (
           <LoadingState label="Loading monthly status..." />
         ) : (
-          <>
-            <div className="hidden overflow-x-auto rounded-lg border border-orange-200 md:block">
-              <table className="min-w-full text-sm">
-                <thead className="bg-orange-700 text-orange-50">
-                  <tr>
-                    <th className="px-3 py-3 text-left">People</th>
-                    <th className="px-3 py-3 text-left">Total JD shared</th>
-                    <th className="px-3 py-3 text-left">Total JD Scheduled</th>
-                    <th className="px-3 py-3 text-left">Total Closures</th>
-                  </tr>
-                </thead>
+          <div className="overflow-x-auto rounded-lg border border-orange-200">
 
-                <tbody>
-                  {rows.map((row, index) => (
-                    <tr
-                      className={index % 2 === 0 ? "bg-white" : "bg-orange-50"}
-                      key={row.userId}
-                    >
-                      <td className="px-3 py-2 font-medium text-orange-900">
-                        {row.username}
+            <table className="min-w-full text-sm">
+
+              <thead className="bg-orange-700 text-orange-50">
+                <tr>
+                  <th className="px-3 py-3 text-left">People</th>
+                  <th className="px-3 py-3 text-left">Total JDs Shared</th>
+                  <th className="px-3 py-3 text-left">Total JDs Scheduled</th>
+                  <th className="px-3 py-3 text-left">Total Closures</th>
+                </tr>
+              </thead>
+
+              <tbody>
+
+                {rows.map((row, index) => (
+                  <tr
+                    key={row.userId}
+                    className={index % 2 === 0 ? "bg-white" : "bg-orange-50"}
+                  >
+
+                    <td className="px-3 py-2 font-medium text-orange-900">
+                      {row.username}
+                    </td>
+
+                    {["jd","schedule","closures"].map((key) => (
+                      <td className="px-3 py-2" key={key}>
+                        {user.role === "admin" ? (
+                          <input
+                            className="input-orange w-28 rounded-md bg-white px-3 py-2"
+                            min="0"
+                            type="number"
+                            value={row[key] ?? 0}
+                            onChange={(e) =>
+                              updateRow(index, key, e.target.value)
+                            }
+                          />
+                        ) : (
+                          <span className="text-orange-800">
+                            {row[key] ?? 0}
+                          </span>
+                        )}
                       </td>
+                    ))}
 
-                      {["total jd shared", "total jd scheduled",  "total closures"].map((key) => (
-                        <td className="px-3 py-2" key={key}>
-                          {user.role === "admin" ? (
-                            <input
-                              className="input-orange w-28 rounded-md bg-white px-3 py-2"
-                              min="0"
-                              type="number"
-                              value={row[key] ?? 0}
-                              onChange={(e) =>
-                                updateRow(index, key, e.target.value)
-                              }
-                            />
-                          ) : (
-                            <span className="text-orange-800">
-                              {row[key] ?? 0}
-                            </span>
-                          )}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-
-                  {/* TOTAL ROW */}
-                  <tr className="bg-orange-200 font-bold text-orange-900">
-                    <td className="px-3 py-2">Total</td>
-                    <td className="px-3 py-2">{totals.jd}</td>
-                    <td className="px-3 py-2">{totals.schedule}</td>
-                    <td className="px-3 py-2">{totals.closures}</td>
                   </tr>
-                </tbody>
-              </table>
-            </div>
+                ))}
 
-            {/* MOBILE VIEW */}
-            <div className="space-y-3 md:hidden">
-              {rows.map((row) => (
-                <article
-                  className="rounded-lg border border-orange-200 bg-white p-3"
-                  key={row.userId}
-                >
-                  <p className="mb-3 text-base font-semibold text-orange-900">
-                    {row.username}
-                  </p>
+                <tr className="bg-orange-200 font-bold text-orange-900">
+                  <td className="px-3 py-2">Total</td>
+                  <td className="px-3 py-2">{totals.jd}</td>
+                  <td className="px-3 py-2">{totals.schedule}</td>
+                  <td className="px-3 py-2">{totals.closures}</td>
+                </tr>
 
-                  {["total jd shared", "total jd scheduled",  "total closures"].map((key) => (
-                    <div className="mb-2" key={key}>
-                      <label className="mb-1 block text-sm font-medium capitalize text-orange-800">
-                        {key}
-                      </label>
+              </tbody>
+            </table>
 
-                      {user.role === "admin" ? (
-                        <input
-                          className="input-orange w-full rounded-md bg-orange-50 px-3 py-2"
-                          min="0"
-                          type="number"
-                          value={row[key] ?? 0}
-                          onChange={(e) =>
-                            updateRow(rows.indexOf(row), key, e.target.value)
-                          }
-                        />
-                      ) : (
-                        <p className="rounded-md border border-orange-200 bg-orange-50 px-3 py-2 text-orange-800">
-                          {row[key] ?? 0}
-                        </p>
-                      )}
-                    </div>
-                  ))}
-                </article>
-              ))}
-
-              {/* MOBILE TOTAL */}
-              <article className="rounded-lg border border-orange-300 bg-orange-100 p-3 font-semibold">
-                <p className="mb-2 text-orange-900">Total</p>
-                <p className="text-sm text-orange-800">
-                  Schedule: {totals.schedule}
-                </p>
-                <p className="text-sm text-orange-800">JD: {totals.jd}</p>
-                <p className="text-sm text-orange-800">
-                  Closures: {totals.closures}
-                </p>
-              </article>
-            </div>
-          </>
+          </div>
         )}
+
       </section>
+
     </AppShell>
   );
 }
